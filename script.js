@@ -3,10 +3,20 @@ const itemInput = document.getElementById('item-input')
 const itemFilter = document.getElementById('filter')
 const itemList = document.getElementById('item-list')
 const clearBtn = document.getElementById('clear')
+const formBtn = itemForm.querySelector('button')
+let isEditMode = false
 
 
-//Event listener function
-addItem = e => {
+//Event listener functions
+displayItems = () => {
+    const itemsFromStorage = getItemsFromStorage() //loading items from this array
+    itemsFromStorage.forEach((item) => addItemToDOM(item))
+
+    // Call Reset function
+    resetUI()
+}
+
+onAddItemSubmit = e => {
     e.preventDefault()
 
     // Valdate Input
@@ -16,16 +26,21 @@ addItem = e => {
         return
     }
 
-    //Create List Item
-    const li = document.createElement('li')
-    li.appendChild(document.createTextNode(newItem))
+    //check for edit mode. It is basically replacing the value in the localstorage
+    if (isEditMode) {
+        const itemToEdit = itemList.querySelector('.edit-mode')
 
-    const button = createButton('remove-item btn-link text-red')
-    //add to Created List Item
-    li.appendChild(button)
+        removeItemFromStorage(itemToEdit.textContent)
+        itemToEdit.classList.remove('edit-mode')
+        itemToEdit.remove()
+        isEditMode = false
+    }
 
-    //append to the list item
-    itemList.appendChild(li)
+    //Create item DOM element
+    addItemToDOM(newItem)
+
+    // Add item to local storage
+    addItemToStorage(newItem)
 
     // Call Reset function
     resetUI()
@@ -35,6 +50,20 @@ addItem = e => {
     itemInput.value = ''
 
 }
+
+addItemToDOM = item => {
+    //Create List Item
+    const li = document.createElement('li')
+    li.appendChild(document.createTextNode(item))
+
+    const button = createButton('remove-item btn-link text-red')
+    //add to Created List Item
+    li.appendChild(button)
+
+    //append to the list item
+    itemList.appendChild(li)
+}
+
 
 createButton = classes => {
     const button = document.createElement('button')
@@ -51,16 +80,80 @@ createIcon = classes => {
     return icon
 }
 
-removeItem = e => {
-    if (e.target.parentElement.classList.contains('remove-item')) {
-        e.target.parentElement.parentElement.remove();
+//Add to local Storage
+addItemToStorage = (item) => {
+    //check to see if there are items in local Storage
+    const itemsFromStorage = getItemsFromStorage()
+
+    //Add new item to array
+    itemsFromStorage.push(item)
+
+    //Convert to JSON string and set to local storage
+    localStorage.setItem('items', JSON.stringify(itemsFromStorage))
+};
+
+getItemsFromStorage = () => {
+    //"items" is the Key in LocalStorage
+    if (localStorage.getItem('items') === null) {
+        itemsFromStorage = []
+    } else {
+        itemsFromStorage = JSON.parse(localStorage.getItem('items'))
     }
+
+    return itemsFromStorage
+}
+
+onClickItem = e => {
+    if (e.target.parentElement.classList.contains('remove-item')) {
+        removeItem(e.target.parentElement.parentElement)
+    } else {
+        setItemToEdit(e.target)
+    }
+}
+
+setItemToEdit = item => {
+    isEditMode = true
+
+    itemList
+        .querySelectorAll('li')
+        .forEach((i) => i.classList.remove('edit-mode'))
+
+    item.classList.add('edit-mode')
+
+    formBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Update Item'
+    formBtn.style.backgroundColor = '#228B22'
+
+    //Puts the initail value in the input field
+    itemInput.value = item.textContent
+}
+
+removeItem = item => {
+    if (confirm('Are you sure?')) {
+        // Remove item from DOM
+        item.remove()
+
+        // Remove item from storage
+        removeItemFromStorage(item.textContent)
+    }
+}
+
+removeItemFromStorage = item => {
+    let itemsFromStorage = getItemsFromStorage()
+    //Filter out item to be removed
+    itemsFromStorage = itemsFromStorage.filter((i) => i !== item)
+
+    //Re-set to localstorage
+    localStorage.setItem('items', JSON.stringify(itemsFromStorage))
 }
 
 clearItems = () => {
     while (itemList.firstChild) {
         itemList.removeChild(itemList.firstChild)
     }
+
+    // clear from localStorage
+    localStorage.removeItem('items')
+
     // Call Reset function
     resetUI()
 
@@ -86,6 +179,8 @@ filterItems = (e) => {
 
 //Reset Ui if list === 0
 resetUI = () => {
+    // itemInput.value = ''
+
     const list = itemList.querySelectorAll('li') //querySelectorAll puts it in an array
     //check condition
     if (list.length === 0) {
@@ -95,14 +190,20 @@ resetUI = () => {
         clearBtn.style.display = 'block'
         itemFilter.style.display = 'block'
     }
+
+    formBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Add Item'
+    formBtn.style.backgroundColor = '#333'
+
+    isEditMode = false
 }
 
 
 //Event Listener
-itemForm.addEventListener('submit', addItem)
-itemList.addEventListener('click', removeItem)
+itemForm.addEventListener('submit', onAddItemSubmit)
+itemList.addEventListener('click', onClickItem)
 clearBtn.addEventListener('click', clearItems)
 itemFilter.addEventListener('input', filterItems)
+document.addEventListener('DOMContentLoaded', displayItems)
 
 // Call Function
 resetUI()
