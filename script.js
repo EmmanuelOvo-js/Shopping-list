@@ -34,6 +34,11 @@ onAddItemSubmit = e => {
         itemToEdit.classList.remove('edit-mode')
         itemToEdit.remove()
         isEditMode = false
+    } else {
+        if (checkIFItemExists(newItem)) {
+            alert('Item Already Exists')
+            return
+        }
     }
 
     //Create item DOM element
@@ -109,6 +114,11 @@ onClickItem = e => {
     } else {
         setItemToEdit(e.target)
     }
+}
+
+checkIFItemExists = (item) => {
+    const itemsFromStorage = getItemsFromStorage()
+    return itemsFromStorage.includes(item)
 }
 
 setItemToEdit = item => {
